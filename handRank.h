@@ -38,9 +38,6 @@ public:
             suitCount[c.suit]++;
         }
 
-        Rating result = Rating::Nothing;
-        bool tPair = false, rf = false;
-
         bool hasPair = false;
         bool hasTwoPair = false;
         bool hasTrips = false;
@@ -62,7 +59,65 @@ public:
         hasTwoPair = pairCount >= 2;
 
         //straight detection
+        for(int i = 2 ; i <= 10 ; i++){
+            bool straight = true;
+            for(int j = 1 ; j <= 4 ; j++){
+                if(rankCount[i+j] == 0){
+                    straight = false;
+                    break;
+                }
+            }
+            if(straight){
+                hasStraight = true; 
+                break;
+            }
+        }
+
+        //edge case: low straight (A-2-3-4-5)
+        if (!hasStraight &&
+        rankCount[14] &&
+        rankCount[2] &&
+        rankCount[3] &&
+        rankCount[4] &&
+        rankCount[5]) {
+            hasStraight = true;
+        }
+
+        //flush
+        for(int i = 1 ; i <= 4; i++){
+            if(suitCount[i] >= 5){
+                hasFlush = true;
+                break;
+            }
+        }
+
+        //straight flush & royal flush
+        if(hasStraight && hasFlush){
+            hasStraightFlush = true;
+            //royal flush is 10 J K Q A
+
+            if (rankCount[10] &&
+            rankCount[11] &&
+            rankCount[12] &&
+            rankCount[13] &&
+            rankCount[14]) {
+                hasRoyalFlush = true;
+            }
+        }
+
+        //final rankings
+
+        if (hasRoyalFlush)      return Rating::RoyalFlush;
+        if (hasStraightFlush)   return Rating::StraightFlush;
+        if (hasQuads)           return Rating::FourOfAKind;
+        if (hasTrips && hasPair) return Rating::FullHouse;
+        if (hasFlush)           return Rating::Flush;
+        if (hasStraight)        return Rating::Straight;
+        if (hasTrips)           return Rating::ThreeOfAKind;
+        if (hasTwoPair)         return Rating::TwoPair;
+        if (hasPair)            return Rating::OnePair;
         
+        return Rating::HighCard;
     }
 };
 
