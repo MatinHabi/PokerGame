@@ -1,13 +1,13 @@
 #pragma once
-#include <vector>
-#include <algorithm>
 #include <random>
+#include <algorithm>
 #include "card.h"
 
 class Deck{
 protected:
     std::vector<Cards> deck;
     int next;
+    friend class Helper;
 public:
     Deck(): next(0){reset();}
 
@@ -30,10 +30,12 @@ public:
     }
 
     std::vector<Cards> getDeck(){return deck;}
+    
     Cards deal(){
-        return deck[next++];
+        if(next<=52){
+            return deck[next++];
+        }
+        return {0,(Suit)1};
     }
-
-
 
 };
