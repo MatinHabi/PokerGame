@@ -14,17 +14,18 @@ private:
     bool active;
     int balance;
 public:
-    Player(std::vector<Cards>& dealtCards, std::string n = "John Doe"): 
-           balance(205), name(n), hand(dealtCards), active(true){
-                chipBalance = {{Black, 1}, {Green, 2}, {Blue, 3}, {Red, 4}, {White, 5}};
+    Player(std::string n = "John Doe", int startingBalance = 205)
+        : name(n), balance(startingBalance), active(true) {
+        chipBalance = {{Black, 1}, {Green, 2}, {Blue, 3}, {Red, 4}, {White, 5}};
     }
+
 
     void giveCard(const Cards& c) { hand.push_back(c); }
     void clearHand() { hand.clear(); }
 
     const std::vector<Cards>& getHand() const { return hand; }
 
-    int getBalance() const { return balance; }
+    int getBalance() const {return balance;}
     void addBalance(int amount) {
         balance += amount;
 

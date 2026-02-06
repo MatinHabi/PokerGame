@@ -8,6 +8,7 @@ protected:
     std::vector<Cards> deck;
     int next;
     friend class Helper;
+    friend class PokerTable;
 public:
     Deck(): next(0){reset();}
 
@@ -37,5 +38,7 @@ public:
         }
         return {0,(Suit)1};
     }
+
+    ~Deck(){}
 
 };
