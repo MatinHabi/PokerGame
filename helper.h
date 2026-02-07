@@ -18,6 +18,10 @@ public:
         std::cout << "\n";
     }
 
+    std::string static cardToString(Cards c){
+        return ranks[c.rank-2] + suits[c.suit];
+    }
+
     std::string static deal(Deck* d){
         Cards out = d->deal();
         if(out.rank == 0){std::cout<<"ERROR\n";return "";}

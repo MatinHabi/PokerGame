@@ -13,6 +13,8 @@ private:
     std::map<Chips, int> chipBalance;
     bool active;
     int balance;
+    friend class PokerTable;
+    friend class HandRank;
 public:
     Player(std::string n = "John Doe", int startingBalance = 205)
         : name(n), balance(startingBalance), active(true) {
@@ -23,7 +25,7 @@ public:
     void giveCard(const Cards& c) { hand.push_back(c); }
     void clearHand() { hand.clear(); }
 
-    const std::vector<Cards>& getHand() const { return hand; }
+    std::vector<Cards>& getHand(){return hand;}
 
     int getBalance() const {return balance;}
     void addBalance(int amount) {
@@ -52,6 +54,7 @@ public:
     }
 
     bool bet(int amount) {
+        if (amount <= 0) return false;
         if (amount > balance) return false;
         balance -= amount;
 
