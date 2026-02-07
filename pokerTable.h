@@ -177,7 +177,7 @@ public:
     }
     
     bool showdown(){
-
+        for(int i = 0 ; i < bots)
     }
     ~PokerTable(){delete deck; delete P1;}
 

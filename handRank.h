@@ -32,7 +32,8 @@ public:
         //TODO: implement hand evaluation logic
         //consider all options C(7,5) for best 5-card hand from 7 cards
         //cannot use less than 1 card from player hand
-        HandValue bestHand = {Rating::Nothing, {}};
+        
+        //initalisation of vars ======================================================
         int rankCount[15] = {0};
         int suitCount[5] = {0};
         vector<int> ranks;
@@ -54,7 +55,7 @@ public:
         bool hasStraightFlush = false;
         bool hasRoyalFlush = false;
 
-        //flush check
+        //flush check =============================================================
         for(int s = 1 ; s<=4 ; s++){
             if (suitCount[s] == 5){
                 hasFlush = true;
@@ -62,7 +63,97 @@ public:
             }
         }
 
-        //straight check
+        //straight check ===========================================================
+        vector<int> uniqueRanks;
+        int topStraightRank = 0;
+
+        for(int r = 2 ; r <= 14 ; r++){
+            if(rankCount[r] > 0){
+                uniqueRanks.push_back(r);
+            }
+        }
+        sort(uniqueRanks.begin(), uniqueRanks.end());
+
+        if(uniqueRanks.size() == 5){
+            if(uniqueRanks[4] - uniqueRanks[0] == 4){
+                hasStraight = true;
+                topStraightRank = uniqueRanks[4];
+            }
+
+            if (uniqueRanks == std::vector<int>{2,3,4,5,14}) {
+                hasStraight = true;
+                topStraightRank = 5; // Low Straight condition is (A-2-3-4-5)
+            }
+        }
+
+        //check for duplicates ======================================================
+        std::vector<int> quads, trips, pairs, singles;
+
+        for (int i = 14; i >= 2; i--) {
+            if (rankCount[i] == 4) {quads.push_back(i); hasQuads = true;} 
+            else if (rankCount[i] == 3) {trips.push_back(i); hasTrips = true;}
+            else if (rankCount[i] == 2) {pairs.push_back(i); hasPair = true;}
+            else if (rankCount[i] == 1) {singles.push_back(i);}
+        }
+
+        //DETERMINING HAND ========================================================== 
+
+            //royal flush
+            if(hasStraight && hasFlush){
+                if(topStraightRank == 14)
+                    return {Rating::RoyalFlush, {14}};
+                return {Rating::StraightFlush, {topStraightRank}};
+            }
+
+            //four of a kind
+            if(!quads.empty() && hasQuads){
+                return {Rating::FourOfAKind, {quads[0], singles[0]}}; //5 cars hand -> return {repeated rank, extra card}
+            }
+
+            //three of a kind
+            if(!trips.empty() && hasTrips){
+                vector<int> temp = {trips[0]};
+                temp.insert(temp.end(), singles.begin(), singles.end());
+                return {Rating::FourOfAKind, temp}; //5 cars hand -> return {repeated rank, extra cards}
+            }
+
+            //two pair
+            if(pairs.size() >= 1 && hasPair){
+                vector<int> temp;
+                if(pairs.size() == 1){
+                    temp = {pairs[0]};
+                    temp.insert(temp.end(), singles.begin(), singles.end());
+                    return {Rating::OnePair, {pairs[0]}};
+                }
+                if(pairs.size() >= 2){
+                    return  {Rating::TwoPair, {pairs[0], pairs[1], singles[0]}};
+                }
+            }
+
+            //one pair
+            if (pairs.size() == 1) {
+                std::vector<int> keys = {pairs[0]};
+                keys.insert(keys.end(), singles.begin(), singles.end());
+                return {Rating::OnePair, keys};
+            }
+
+            //full house
+            if(!trips.empty() && !pairs.empty()){
+                return {Rating::FullHouse, {trips[0], pairs[0]}};
+            }
+
+            //straight
+            if(hasStraight){
+                return {Rating::Straight, {topStraightRank}};
+            }
+
+            if(hasFlush){
+                return {Rating::Flush, ranks};
+            }
+
+            // High Card
+            return {Rating::HighCard, ranks};
+
     }
 
     static HandValue evaluateHand(std::vector<Cards>& hand, std::vector<Cards>& community){
