@@ -38,7 +38,10 @@ public:
 
     void resetForRound();
 
-    virtual Action decideAction(int currentBet);
+    virtual Action decideAction(int toCall, int minRaise) { 
+        return Action{ActionType::Nothing, 0}; 
+    }
 
     virtual ~Player() = default;
+    void showPlayerUI();
 };

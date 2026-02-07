@@ -1,6 +1,7 @@
 #include "player.h"
 
-
+    Player::Player(std::string n , int startingBalance):
+                name(n), balance(startingBalance){};
     void Player::giveCard(const Cards& c) { hand.push_back(c); }
     void Player::clearHand() { hand.clear(); }
 
@@ -63,3 +64,6 @@
     bool Player::isActive() const { return active; }
     void Player::fold() { active = false; }
     void Player::resetForRound() { active = true; }
+    void Player::showPlayerUI(){
+        
+    }

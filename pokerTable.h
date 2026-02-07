@@ -1,121 +1,125 @@
 #pragma once
+
 #include "player.h"
 #include "deck.h"
 #include "helper.h"
 #include "bot.h"
 #include "handRank.h"
-#include <queue>
-#include <iostream>
 
-using namespace std;
-class PokerTable{
+#include <queue>
+#include <vector>
+#include <iostream>
+#include <string>
+
+class PokerTable {
 private:
-    queue<Cards> Qdeck;
-    vector<Bots*> bots;
-    vector<Cards> communityCards;
+    std::queue<Cards> Qdeck;
+    std::vector<Bots*> bots;                 // change Bot -> Bots if your class is named Bots
+    std::vector<Cards> communityCards;
+
     Player* P1;
     Deck* deck;
     int pot;
 
     Player* getSeat(int idx) {
-    // seat 0 = human, seats 1..n = bots
-    if (idx == 0) return P1;
-    return bots[idx - 1];
-}
-
-int seatCount() const {
-    return 1 + (int)bots.size();
-}
-
-int countActivePlayers() const {
-    int active = 0;
-    if (P1->isActive()) active++;
-    for (auto b : bots) if (b->isActive()) active++;
-    return active;
-}
-
-int firstActiveSeat() const {
-    if (P1->isActive()) return 0;
-    for (int i = 0; i < (int)bots.size(); i++)
-        if (bots[i]->isActive()) return i + 1;
-    return -1;
-}
-
-// Turn human input into an Action (so bots + humans share same pipeline)
-Action askHumanAction(int toCall, int minRaise) {
-    Action act;
-
-    if (toCall == 0) {
-        cout << "bet/raise (r) || fold (f)\n";
-    } else {
-        cout << "call (c) || raise (r) || fold (f)\n";
-        cout << toCall << " to call: ";
+        // seat 0 = human, seats 1..n = bots
+        if (idx == 0) return P1;
+        return bots[idx - 1];
     }
 
-    string in;
-    cin >> in;
+    int seatCount() const {
+        return 1 + static_cast<int>(bots.size());
+    }
 
-    if (in == "f") {
-        act.action = ActionType::Fold;
+    int countActivePlayers() const {
+        int active = 0;
+        if (P1->isActive()) active++;
+        for (auto b : bots) if (b->isActive()) active++;
+        return active;
+    }
+
+    int firstActiveSeat() const {
+        if (P1->isActive()) return 0;
+        for (int i = 0; i < static_cast<int>(bots.size()); i++) {
+            if (bots[i]->isActive()) return i + 1;
+        }
+        return -1;
+    }
+
+    // Turn human input into an Action (so bots + humans share same pipeline)
+    Action askHumanAction(int toCall, int minRaise) {
+        Action act; // defaults to FOLD/0 if you kept those defaults in Action struct
+
+        if (toCall == 0) {
+            std::cout << "check (k) || bet/raise (r) || fold (f)\n> ";
+        } else {
+            std::cout << "call (c) || raise (r) || fold (f)\n";
+            std::cout << toCall << " to call\n> ";
+        }
+
+        std::string in;
+        std::cin >> in;
+
+        if (in == "f") {
+            act.action = ActionType::Fold;
+            return act;
+        }
+
+        if (in == "k") {
+            act.action = ActionType::Nothing;
+            return act;
+        }
+
+        if (in == "c") {
+            act.action = ActionType::Call;
+            return act;
+        }
+
+        if (in == "r") {
+            act.action = ActionType::Raise;
+            int raiseAmount;
+            std::cout << "\nraise amount (min " << minRaise << "): ";
+            std::cin >> raiseAmount;
+            act.amount = raiseAmount;
+            return act;
+        }
+
+        // fallback
+        act.action = (toCall == 0) ? ActionType::Nothing : ActionType::Fold;
         return act;
     }
-
-    if (in == "c") {
-        act.action = ActionType::Call;
-        return act;
-    }
-
-    if (in == "r") {
-        act.action = ActionType::Raise;
-        int raiseAmount;
-        cout << "raise amount (min " << minRaise << "): ";
-        cin >> raiseAmount;
-        act.amount = raiseAmount;
-        return act;
-    }
-
-    // default safe fallback
-    act.action = (toCall == 0) ? ActionType::Nothing : ActionType::Fold;
-    return act;
-}
 
 public:
-    PokerTable(std::string username, int startingBalance, int n = 0): deck(new Deck()), pot(0){
-        //generating + shuffling deck
+    PokerTable(std::string username, int startingBalance, int n = 0)
+        : P1(new Player(username, startingBalance)), deck(new Deck()), pot(0) {
+
         deck->shuffleDeck();
-        for(Cards c : deck->deck){
-            Qdeck.push(c);
+        for (Cards c : deck->deck) Qdeck.push(c);
+
+        for (int i = 0; i < n; i++) {
+            std::string name = "bot" + std::to_string(i);
+            bots.push_back(new Bots(name, startingBalance)); // change Bot -> Bots if needed
         }
-        //generating bots
-        for(int i = 0 ; i < n ; i++){
-            string name = "bot" + to_string(i);
-            bots.push_back(new Bots(name, startingBalance));
-        }
-        //player
-        P1 = new Player(username, startingBalance);
     }
 
     void startRound() {
-        // 1. Reset pot
         pot = 0;
+        communityCards.clear();
 
-        // 2. Reset deck
+        // reset deck queue
         while (!Qdeck.empty()) Qdeck.pop();
         deck->shuffleDeck();
-        for (Cards c : deck->deck) {
-            Qdeck.push(c);
-        }
+        for (Cards c : deck->deck) Qdeck.push(c);
 
-        // 3. Reset players
+        // reset players
         P1->clearHand();
         P1->resetForRound();
-
         for (auto& bot : bots) {
             bot->clearHand();
             bot->resetForRound();
         }
 
-        // 4. Deal hole cards (2 each)
+        // deal 2 hole cards each
         for (int i = 0; i < 2; i++) {
             P1->giveCard(Qdeck.front());
             Qdeck.pop();
@@ -126,90 +130,201 @@ public:
             }
         }
     }
-    void printCommunityCards(){
-        if(communityCards.empty()){
-            cout << "No community cards yet\n";
+
+    void printCommunityCards() {
+        if (communityCards.empty()) {
+            std::cout << "No community cards yet\n";
             return;
         }
-        for(const auto& card : communityCards){
-            cout << Helper::cardToString(card) << " ";
+        for (const auto& card : communityCards) {
+            std::cout << Helper::cardToString(card) << " ";
         }
-        cout << "\n";
+        std::cout << "\n";
     }
-    
-    bool bettingRound(int bets = 10){
-        string in = "";
+
+    bool bettingRound(int minBet = 10) {
         if (countActivePlayers() <= 1) {
-        int winnerSeat = firstActiveSeat();
-        if (winnerSeat != -1) {
-            Player* w = getSeat(winnerSeat);
-            cout << w->name << " wins (everyone else folded)\n";
-            w->addBalance(pot);
+            int winnerSeat = firstActiveSeat();
+            if (winnerSeat != -1) {
+                Player* w = getSeat(winnerSeat);
+                std::cout << w->name << " wins - everyone else folded!!\n";
+                w->addBalance(pot);
+            }
+            return false;
         }
-        return false;
-    }
-    }
 
-    bool preFlopBet(){
-        cout << "Pre-flop betting...\n";
-        return bettingRound();
-    }
+        const int players = seatCount();
+        std::vector<int> contributed(players, 0);
 
-    bool flop(){
-        //community cards
-        Qdeck.pop(); // burn card
-        cout << "Top Card Burnt! 🔥\n";
-        cout << "Dealing community cards...\n";
-        for(int i = 0 ; i < 3 ; i++){
-            communityCards.push_back(Qdeck.front());
-            cout << Helper::cardToString(Qdeck.front()) << " ";
-            Qdeck.pop();
-        }
-        for (int i = 0 ; i < 2 ; i++){
-            cout << "X ";
-        }
-        cout << "\n";
+        int currentBet = 0;
+        int minRaise = minBet;
 
-        return bettingRound();
-    }
+        int idx = 0;
+        int lastAggressor = -1;
+        bool someoneBet = false;
 
-    bool dealTurn(){
-        Qdeck.pop(); // burn card
-        cout << "Top Card Burnt! 🔥\n";
-        cout << "Dealing turn card...\n";
-        printCommunityCards();
-        cout << Helper::cardToString(Qdeck.front()) << " X\n";
-        communityCards.push_back(Qdeck.front());
-        Qdeck.pop();
-        return bettingRound();
-    }
-    bool dealRiver(){
-        Qdeck.pop(); // burn card
-        cout << "Top Card Burnt! 🔥\n";
-        cout << "Dealing river card...\n";
-        printCommunityCards();
-        cout << Helper::cardToString(Qdeck.front()) << "\n";
-        communityCards.push_back(Qdeck.front());
-        Qdeck.pop();
-        return bettingRound();
-    }
-    
-    std::string showdown(){
-        Player* winner = nullptr;
-        for(int i = 0 ; i < bots.size() ; i++){
-            for(int j = i ; j < bots.size() ; j++){
-                winner = HandRank::compareHands(bots[j], bots[i], communityCards);
-            
+        while (true) {
+            if (countActivePlayers() <= 1) {
+                int winnerSeat = firstActiveSeat();
+                Player* w = getSeat(winnerSeat);
+                std::cout << w->name << " wins (everyone else folded)\n";
+                w->addBalance(pot);
+                return false;
+            }
+
+            Player* p = getSeat(idx);
+
+            if (p->isActive()) {
+                int toCall = currentBet - contributed[idx];
+                if (toCall < 0) toCall = 0;
+
+                Action a;
+                if (idx == 0) {
+                    a = askHumanAction(toCall, minRaise);
+                } else {
+                    a = bots[idx - 1]->decideAction(toCall, minRaise);
+                }
+
+                // normalize illegal check facing a bet
+                if (a.action == ActionType::Nothing && toCall > 0) {
+                    a.action = ActionType::Call;
+                }
+
+                if (a.action == ActionType::Fold) {
+                    p->fold();
+                    std::cout << p->name << " folds\n";
+                }
+                else if (a.action == ActionType::Nothing) {
+                    std::cout << p->name << " checks\n";
+                }
+                else if (a.action == ActionType::Call) {
+                    if (toCall == 0) {
+                        std::cout << p->name << " checks\n";
+                    } else if (p->bet(toCall)) {
+                        contributed[idx] += toCall;
+                        pot += toCall;
+                        std::cout << p->name << " calls " << toCall << "\n";
+                    } else {
+                        p->fold();
+                        std::cout << p->name << " can't call -> folds\n";
+                    }
+                }
+                else if (a.action == ActionType::Raise) {
+                    int raiseBy = a.amount;
+
+                    // enforce minimum raise
+                    if (!someoneBet) {
+                        if (raiseBy < minBet) raiseBy = minBet;
+                    } else {
+                        if (raiseBy < minRaise) raiseBy = minRaise;
+                    }
+
+                    const int totalToPutIn = toCall + raiseBy;
+
+                    if (p->bet(totalToPutIn)) {
+                        contributed[idx] += totalToPutIn;
+                        pot += totalToPutIn;
+
+                        currentBet += raiseBy;
+                        minRaise = raiseBy;
+                        someoneBet = true;
+                        lastAggressor = idx;
+
+                        std::cout << p->name << " raises by " << raiseBy
+                                  << " (current bet: " << currentBet << ")\n";
+                    } else {
+                        p->fold();
+                        std::cout << p->name << " can't raise -> folds\n";
+                    }
+                }
+            }
+
+            // ALWAYS move to next seat (prevents infinite loop)
+            idx = (idx + 1) % players;
+
+            // End conditions
+            if (!someoneBet) {
+                // End after a full loop with no bets/raises
+                if (idx == 0) return true;
+            } else {
+                // End when action comes back to last aggressor AND everyone matched currentBet
+                if (idx == lastAggressor) {
+                    bool allMatched = true;
+                    for (int s = 0; s < players; s++) {
+                        Player* ps = getSeat(s);
+                        if (!ps->isActive()) continue;
+                        if (contributed[s] < currentBet) {
+                            allMatched = false;
+                            break;
+                        }
+                    }
+                    if (allMatched) return true;
+                }
             }
         }
-        winner = HandRank::compareHands(winner, P1, communityCards);
-        if(winner == P1){
-            return P1->name + " wins!\n";
-        }else if(winner != nullptr){
-            return winner->name + " wins!\n";
-        }
-        return "draw!\n";
     }
-    ~PokerTable(){delete deck; delete P1; for (auto b : bots) delete b;}
 
+    bool preFlopBet() {
+        std::cout << "Pre-flop betting...\n";
+        return bettingRound();
+    }
+
+    bool flop() {
+        Qdeck.pop(); // burn
+        std::cout << "Top Card Burnt! 🔥\nDealing flop...\n";
+
+        for (int i = 0; i < 3; i++) {
+            communityCards.push_back(Qdeck.front());
+            std::cout << Helper::cardToString(Qdeck.front()) << " ";
+            Qdeck.pop();
+        }
+        std::cout << "\n";
+
+        return bettingRound();
+    }
+
+    bool dealTurn() {
+        Qdeck.pop(); // burn
+        std::cout << "Top Card Burnt! 🔥\nDealing turn...\n";
+        printCommunityCards();
+
+        communityCards.push_back(Qdeck.front());
+        std::cout << Helper::cardToString(Qdeck.front()) << "\n";
+        Qdeck.pop();
+
+        return bettingRound();
+    }
+
+    bool dealRiver() {
+        Qdeck.pop(); // burn
+        std::cout << "Top Card Burnt! 🔥\nDealing river...\n";
+        printCommunityCards();
+
+        communityCards.push_back(Qdeck.front());
+        std::cout << Helper::cardToString(Qdeck.front()) << "\n";
+        Qdeck.pop();
+
+        return bettingRound();
+    }
+
+    std::string showdown() {
+        Player* winner = nullptr;
+
+        // pick first active as baseline
+        if (P1->isActive()) winner = P1;
+        for (auto b : bots) {
+            if (!b->isActive()) continue;
+            if (!winner) winner = b;
+            else winner = HandRank::compareHands(winner, b, communityCards);
+        }
+
+        if (!winner) return "draw!\n";
+        return winner->name + " wins!\n";
+    }
+
+    ~PokerTable() {
+        delete deck;
+        delete P1;
+        for (auto b : bots) delete b;
+    }
 };
