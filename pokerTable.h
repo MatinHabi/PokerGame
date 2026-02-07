@@ -2,6 +2,7 @@
 #include "player.h"
 #include "deck.h"
 #include "helper.h"
+#include "bot.h"
 #include "handRank.h"
 #include <queue>
 #include <iostream>
@@ -10,11 +11,74 @@ using namespace std;
 class PokerTable{
 private:
     queue<Cards> Qdeck;
-    vector<Player*> bots;
+    vector<Bots*> bots;
     vector<Cards> communityCards;
     Player* P1;
     Deck* deck;
     int pot;
+
+    Player* getSeat(int idx) {
+    // seat 0 = human, seats 1..n = bots
+    if (idx == 0) return P1;
+    return bots[idx - 1];
+}
+
+int seatCount() const {
+    return 1 + (int)bots.size();
+}
+
+int countActivePlayers() const {
+    int active = 0;
+    if (P1->isActive()) active++;
+    for (auto b : bots) if (b->isActive()) active++;
+    return active;
+}
+
+int firstActiveSeat() const {
+    if (P1->isActive()) return 0;
+    for (int i = 0; i < (int)bots.size(); i++)
+        if (bots[i]->isActive()) return i + 1;
+    return -1;
+}
+
+// Turn human input into an Action (so bots + humans share same pipeline)
+Action askHumanAction(int toCall, int minRaise) {
+    Action act;
+
+    if (toCall == 0) {
+        cout << "bet/raise (r) || fold (f)\n";
+    } else {
+        cout << "call (c) || raise (r) || fold (f)\n";
+        cout << toCall << " to call: ";
+    }
+
+    string in;
+    cin >> in;
+
+    if (in == "f") {
+        act.action = ActionType::Fold;
+        return act;
+    }
+
+    if (in == "c") {
+        act.action = ActionType::Call;
+        return act;
+    }
+
+    if (in == "r") {
+        act.action = ActionType::Raise;
+        int raiseAmount;
+        cout << "raise amount (min " << minRaise << "): ";
+        cin >> raiseAmount;
+        act.amount = raiseAmount;
+        return act;
+    }
+
+    // default safe fallback
+    act.action = (toCall == 0) ? ActionType::Nothing : ActionType::Fold;
+    return act;
+}
+
 public:
     PokerTable(std::string username, int startingBalance, int n = 0): deck(new Deck()), pot(0){
         //generating + shuffling deck
@@ -25,7 +89,7 @@ public:
         //generating bots
         for(int i = 0 ; i < n ; i++){
             string name = "bot" + to_string(i);
-            bots.push_back(new Player(name, startingBalance));
+            bots.push_back(new Bots(name, startingBalance));
         }
         //player
         P1 = new Player(username, startingBalance);
@@ -72,63 +136,18 @@ public:
         }
         cout << "\n";
     }
+    
     bool bettingRound(int bets = 10){
         string in = "";
-        if(P1->isActive()){
-            if(!P1->bet(bets)){
-                cout << "not enough balance to play\n";
-                P1->fold();
-                return false;
-            }
-            cout << "call (c) || raise (r) || fold (f)\n";
-            cout<< bets << " to play: ";
-            cin >> in;
-            if(in == "c"){
-                if(P1->bet(bets)){
-                    pot += bets;
-                    cout << P1->name << " calls\n";
-                    return true;
-                }else{
-                    cout << "not enough balance to call\n";
-                    P1->fold();
-                    return false;
-                }
-            }
-            else if(in == "r"){
-                int raiseAmount;
-                cout << "raise amount: ";
-                cin >> raiseAmount;
-                while(!P1->bet(raiseAmount) || raiseAmount <= bets){
-                    cout << "not enough balance to raise\n";
-                    cout << "raise amount: ";
-                    cin >> raiseAmount;
-                }
-                pot += raiseAmount;
-                return true;
-            }
-            else if(in == "f"){
-                P1->fold();
-                return false;
-            }
-        }
-        int foldcount = 0;
-        for (auto& bot : bots) {
-            if (!bot->isActive()) continue;
-            if (bot->bet(bets)) {
-                pot += bets;
-            } else {
-                foldcount++;
-                bot->fold();
-            }
-        }
-        if (foldcount == bots.size()) {
-            cout << "All bots folded. " << P1->name << " wins!\n";
-            P1->addBalance(pot);
-            return false;
-        }else{
-            return true;
+        if (countActivePlayers() <= 1) {
+        int winnerSeat = firstActiveSeat();
+        if (winnerSeat != -1) {
+            Player* w = getSeat(winnerSeat);
+            cout << w->name << " wins (everyone else folded)\n";
+            w->addBalance(pot);
         }
         return false;
+    }
     }
 
     bool preFlopBet(){
@@ -191,6 +210,6 @@ public:
         }
         return "draw!\n";
     }
-    ~PokerTable(){delete deck; delete P1;}
+    ~PokerTable(){delete deck; delete P1; for (auto b : bots) delete b;}
 
 };
