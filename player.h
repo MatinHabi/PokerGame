@@ -12,13 +12,14 @@ private:
     std::vector<Cards> hand;
     std::map<Chips, int> chipBalance;
     bool active;
+    bool bot;
     int balance;
     friend class PokerTable;
     friend class HandRank;
 public:
-    Player(std::string n = "John Doe", int startingBalance = 205)
-        : name(n), balance(startingBalance), active(true) {
-        chipBalance = {{Black, 1}, {Green, 2}, {Blue, 3}, {Red, 4}, {White, 5}};
+    Player(std::string n = "John Doe", int startingBalance = 205, bool isBot = false)
+        : name(n), balance(startingBalance), active(true), bot(isBot) {
+            chipBalance = {{Black, 1}, {Green, 2}, {Blue, 3}, {Red, 4}, {White, 5}};
     }
 
 
