@@ -24,17 +24,14 @@ int main() {
 
         cont = table.preFlopBet();
         if (cont) {
-            system("clear");
             table.showTableUI(false);
             cont = table.flop();
         }
         if (cont) {
-            system("clear");
             table.showTableUI(false);
             cont = table.dealTurn();
         }
         if (cont) {
-            system("clear");
             table.showTableUI(false);
             cont = table.dealRiver();
         }
