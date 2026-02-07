@@ -10,7 +10,7 @@ using namespace std;
 class PokerTable{
 private:
     queue<Cards> Qdeck;
-    vector<Player> bots;
+    vector<Player*> bots;
     vector<Cards> communityCards;
     Player* P1;
     Deck* deck;
@@ -24,11 +24,10 @@ public:
         }
         //generating bots
         for(int i = 0 ; i < n ; i++){
-            string name = "bot" + i;
-            bots.emplace_back(name, startingBalance);
+            string name = "bot" + to_string(i);
+            bots.push_back(new Player(name, startingBalance));
         }
         //player
-
         P1 = new Player(username, startingBalance);
     }
 
@@ -48,8 +47,8 @@ public:
         P1->resetForRound();
 
         for (auto& bot : bots) {
-            bot.clearHand();
-            bot.resetForRound();
+            bot->clearHand();
+            bot->resetForRound();
         }
 
         // 4. Deal hole cards (2 each)
@@ -58,7 +57,7 @@ public:
             Qdeck.pop();
 
             for (auto& bot : bots) {
-                bot.giveCard(Qdeck.front());
+                bot->giveCard(Qdeck.front());
                 Qdeck.pop();
             }
         }
@@ -114,12 +113,12 @@ public:
         }
         int foldcount = 0;
         for (auto& bot : bots) {
-            if (!bot.isActive()) continue;
-            if (bot.bet(bets)) {
+            if (!bot->isActive()) continue;
+            if (bot->bet(bets)) {
                 pot += bets;
             } else {
                 foldcount++;
-                bot.fold();
+                bot->fold();
             }
         }
         if (foldcount == bots.size()) {
@@ -176,8 +175,21 @@ public:
         return bettingRound();
     }
     
-    bool showdown(){
-        for(int i = 0 ; i < bots)
+    std::string showdown(){
+        Player* winner = nullptr;
+        for(int i = 0 ; i < bots.size() ; i++){
+            for(int j = i ; j < bots.size() ; j++){
+                winner = HandRank::compareHands(bots[j], bots[i], communityCards);
+            
+            }
+        }
+        winner = HandRank::compareHands(winner, P1, communityCards);
+        if(winner == P1){
+            return P1->name + " wins!\n";
+        }else if(winner != nullptr){
+            return winner->name + " wins!\n";
+        }
+        return "draw!\n";
     }
     ~PokerTable(){delete deck; delete P1;}
 

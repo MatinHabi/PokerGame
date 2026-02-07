@@ -27,11 +27,15 @@ struct HandValue{
 };
 
 class HandRank{
-public:
+private:
     static HandValue eval5(std::vector<Cards>& hand){
         //TODO: implement hand evaluation logic
         //consider all options C(7,5) for best 5-card hand from 7 cards
         //cannot use less than 1 card from player hand
+
+        //structure
+        //counts the ranks and suits
+        //then finds all conditions met and then returns the strongest condition
         
         //initalisation of vars ======================================================
         int rankCount[15] = {0};
@@ -97,8 +101,8 @@ public:
         }
 
         //DETERMINING HAND ========================================================== 
-
-            //royal flush
+            //strongest first
+            //royal flush & Straight flush
             if(hasStraight && hasFlush){
                 if(topStraightRank == 14)
                     return {Rating::RoyalFlush, {14}};
@@ -108,6 +112,21 @@ public:
             //four of a kind
             if(!quads.empty() && hasQuads){
                 return {Rating::FourOfAKind, {quads[0], singles[0]}}; //5 cars hand -> return {repeated rank, extra card}
+            }
+
+            //full house
+            if(!trips.empty() && !pairs.empty()){
+                return {Rating::FullHouse, {trips[0], pairs[0]}};
+            }
+
+            //flush
+            if(hasFlush){
+                return {Rating::Flush, ranks};
+            }
+
+            //straight
+            if(hasStraight){
+                return {Rating::Straight, {topStraightRank}};
             }
 
             //three of a kind
@@ -136,21 +155,7 @@ public:
                 keys.insert(keys.end(), singles.begin(), singles.end());
                 return {Rating::OnePair, keys};
             }
-
-            //full house
-            if(!trips.empty() && !pairs.empty()){
-                return {Rating::FullHouse, {trips[0], pairs[0]}};
-            }
-
-            //straight
-            if(hasStraight){
-                return {Rating::Straight, {topStraightRank}};
-            }
-
-            if(hasFlush){
-                return {Rating::Flush, ranks};
-            }
-
+            
             // High Card
             return {Rating::HighCard, ranks};
 
@@ -190,7 +195,7 @@ public:
             return a.rating > b.rating;
         return a.keys > b.keys;
     }
-
+public:
     static Player* compareHands(Player* p1, Player* p2, std::vector<Cards>& community){
         HandValue r1 = evaluateHand(p1->getHand(), community);
         HandValue r2 = evaluateHand(p2->getHand(), community);
