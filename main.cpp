@@ -8,24 +8,44 @@ using namespace std;
 
 int main() {
     system("clear");
-    PokerTable table("Matin", 200, 3); // username, startingBalance, numberOfBots
+    string name = "";
+    cout << "Enter Username: ";
+    cin >> name;
+    PokerTable table(name, 200, 3);
 
     char again = 'y';
     while (again == 'y' || again == 'Y') {
         table.startRound();
 
+        // After hole cards dealt
+        table.showTableUI(false);
+
         bool cont = true;
 
         cont = table.preFlopBet();
-        if (cont) cont = table.flop();
-        if (cont) cont = table.dealTurn();
-        if (cont) cont = table.dealRiver();
+        if (cont) {
+            system("clear");
+            table.showTableUI(false);
+            cont = table.flop();
+        }
+        if (cont) {
+            system("clear");
+            table.showTableUI(false);
+            cont = table.dealTurn();
+        }
+        if (cont) {
+            system("clear");
+            table.showTableUI(false);
+            cont = table.dealRiver();
+        }
 
         if (cont) {
             std::cout << "\n--- SHOWDOWN ---\n";
+            table.showTableUI(true);          // reveal bot hands
             std::cout << table.showdown();
         } else {
             std::cout << "\n--- ROUND ENDED (fold win) ---\n";
+            table.showTableUI(true);          // reveal for debugging
         }
 
         std::cout << "\nPlay again? (y/n): ";

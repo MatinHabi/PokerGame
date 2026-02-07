@@ -1,25 +1,39 @@
 #pragma once
 #include "player.h"
+#include <random>
 
 class Bots : public Player{
-    int nextIndex;
-    ActionType cycle[3] = {
+private:
+    ActionType cycle[4] = {
+        ActionType::Nothing,
+        ActionType::Raise,
         ActionType::Call,
         ActionType::Fold,
-        ActionType::Raise,
     };
+    static std::mt19937& rng() {
+        static std::mt19937 gen(std::random_device{}());
+        return gen;
+    }
 public:
     Bots(std::string n, int startingBalance): Player(n, startingBalance){}
 
     Action decideAction(int toCall, int minRaise = 10) {
-        ActionType desired = cycle[nextIndex];
-        nextIndex = (nextIndex + 1) % 3;
+        std::uniform_int_distribution<int> dist(1, 4);
+        int roll = dist(rng());
+
+        ActionType desired =cycle[roll-1];
 
         Action act;
-        
-        const int balanceNow = balance;
 
-        if (desired == ActionType::Raise) {
+        const int balanceNow = balance;
+        
+        if (desired == ActionType::Nothing) {
+            // "Nothing" = CHECK if possible, else CALL if possible, else FOLD
+            if (toCall == 0) act.action = ActionType::Nothing; // or ActionType::Check if you have it
+            else if (balanceNow >= toCall) act.action = ActionType::Call;
+            else act.action = ActionType::Fold;
+        }
+        else if (desired == ActionType::Raise) {
             // Raise is always +10 over Calling
             if (balanceNow >= toCall + 10) {
                 act.action = ActionType::Raise;

@@ -1,6 +1,6 @@
 #pragma once
 
-enum ActionType {Nothing, Fold, Raise, Call};
+enum ActionType {Nothing, Raise, Call, Fold};
 
 struct Action{
     ActionType action;

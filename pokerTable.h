@@ -102,7 +102,30 @@ public:
         }
     }
 
+    void showTableUI(bool revealBots = false) {
+        std::cout << "\n=== PLAYERS ===\n";
+        P1->showPlayerUI();
+
+        for (auto& b : bots) {
+            if (revealBots) {
+                b->showPlayerUI();
+            } else {
+                // hide bot cards: print same format but X X
+                std::cout << b->name
+                        << " | $" << b->getBalance()
+                        << " | " << (b->isActive() ? "ACTIVE" : "FOLDED")
+                        << " | Hand: X X\n";
+            }
+        }
+
+        std::cout << "\n=== COMMUNITY ===\n";
+        printCommunityCards();
+        std::cout << "Pot: $" << pot << "\n\n";
+    }
+
+
     void startRound() {
+        system("clear");
         pot = 0;
         communityCards.clear();
 
@@ -139,7 +162,6 @@ public:
         for (const auto& card : communityCards) {
             std::cout << Helper::cardToString(card) << " ";
         }
-        std::cout << "\n";
     }
 
     bool bettingRound(int minBet = 10) {

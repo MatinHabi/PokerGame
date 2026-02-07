@@ -1,4 +1,5 @@
 #include "player.h"
+#include <iostream>
 
     Player::Player(std::string n , int startingBalance):
                 name(n), balance(startingBalance){};
@@ -64,6 +65,18 @@
     bool Player::isActive() const { return active; }
     void Player::fold() { active = false; }
     void Player::resetForRound() { active = true; }
-    void Player::showPlayerUI(){
-        
+    void Player::showPlayerUI() {
+        std::cout << name
+                << " | $" << balance
+                << " | " << (active ? "ACTIVE" : "FOLDED")
+                << " | Hand: ";
+
+        if (hand.empty()) {
+            std::cout << "(none)";
+        } else {
+            for (const auto& c : hand) {
+                std::cout << Helper::cardToString(c) << " ";
+            }
+        }
+        std::cout << "\n";
     }
