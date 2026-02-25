@@ -11,7 +11,7 @@ int main() {
     string name = "";
     cout << "Enter Username: ";
     cin >> name;
-    PokerTable table(name, 200, 3);
+    PokerTable table(name, 200, 3, true);
 
     char again = 'y';
     while (again == 'y' || again == 'Y') {

@@ -90,7 +90,7 @@ private:
     }
 
 public:
-    PokerTable(std::string username, int startingBalance, int n = 0)
+    PokerTable(std::string username, int startingBalance, int n = 0, bool test = false)
         : P1(new Player(username, startingBalance)), deck(new Deck()), pot(0) {
 
         deck->shuffleDeck();
@@ -98,7 +98,7 @@ public:
 
         for (int i = 0; i < n; i++) {
             std::string name = "bot" + std::to_string(i);
-            bots.push_back(new Bots(name, startingBalance)); // change Bot -> Bots if needed
+            bots.push_back(new Bots(name, startingBalance, test)); // change Bot -> Bots if needed
         }
     }
 

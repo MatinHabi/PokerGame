@@ -14,19 +14,24 @@ private:
         static std::mt19937 gen(std::random_device{}());
         return gen;
     }
+    bool test;
 public:
-    Bots(std::string n, int startingBalance): Player(n, startingBalance){}
+    Bots(std::string n, int startingBalance, bool test = false): Player(n, startingBalance){}
 
     Action decideAction(int toCall, int minRaise = 10) {
         std::uniform_int_distribution<int> dist(1, 4);
         int roll = dist(rng());
-
         ActionType desired =cycle[roll-1];
 
         Action act;
+        
+        if(test){
+            act.action = ActionType::Call;
+            return act;
+        }
 
         const int balanceNow = balance;
-        
+
         if (desired == ActionType::Nothing) {
             // "Nothing" = CHECK if possible, else CALL if possible, else FOLD
             if (toCall == 0) act.action = ActionType::Nothing; // or ActionType::Check if you have it
