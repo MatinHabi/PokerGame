@@ -24,12 +24,14 @@ enum class Rating{
 
 struct HandValue{
     Rating rating;
+    vector<int> handCards;
     vector<int> kickers; //used for tiebreaker
 };
 
 class HandRank{
 private:
     static HandValue eval5(std::vector<Cards>& hand){
+        if(hand.empty()){std::cerr<< "ERROR- ALL HANDS VECTOR EMPTY!\n";}
         //TODO: implement hand evaluation logic
         //consider all options C(7,5) for best 5-card hand from 7 cards
         //cannot use less than 1 card from player hand
@@ -51,10 +53,7 @@ private:
 
         sort(ranks.begin(), ranks.end(), greater<int>());
 
-        bool hasPair = false;
-        bool hasTwoPair = false;
-        bool hasTrips = false;
-        bool hasQuads = false;
+
         bool hasStraight = false;
         bool hasFlush = false;
         bool hasStraightFlush = false;
@@ -95,10 +94,10 @@ private:
         std::vector<int> quads, trips, pairs, singles;
 
         for (int i = 14; i >= 2; i--) {
-            if (rankCount[i] == 4) {quads.push_back(i); hasQuads = true;} 
-            else if (rankCount[i] == 3) {trips.push_back(i); hasTrips = true;}
-            else if (rankCount[i] == 2) {pairs.push_back(i); hasPair = true;}
-            else if (rankCount[i] == 1) {singles.push_back(i);}
+            if (rankCount[i] == 1) {singles.push_back(i);}
+            if (rankCount[i] == 2) {pairs.push_back(i);}
+            if (rankCount[i] == 3) {trips.push_back(i);} 
+            if (rankCount[i] == 4) {quads.push_back(i);}
         }
 
         //DETERMINING HAND ========================================================== 
@@ -108,57 +107,46 @@ private:
                 if(topStraightRank == 14){
                     return {Rating::RoyalFlush, {14}};
                 }
-                return {Rating::StraightFlush, {topStraightRank}};
+                return {Rating::StraightFlush, {topStraightRank}, {}};
             }
 
             //four of a kind
-            if(!quads.empty() && hasQuads){
-                return {Rating::FourOfAKind, {quads[0], singles[0]}}; //5 cars hand -> return {repeated rank, extra card}
+            if(!quads.empty()){
+                return {Rating::FourOfAKind, {quads[0]}, {singles[0]}}; //5 cars hand -> return {repeated rank, extra card}
             }
 
             //full house
             if(!trips.empty() && !pairs.empty()){
-                return {Rating::FullHouse, {trips[0], pairs[0]}};
+                return {Rating::FullHouse, {trips[0], pairs[0]}, {}};
             }
 
             //flush
             if(hasFlush){
-                return {Rating::Flush, ranks};
+                return {Rating::Flush, ranks, {}};
             }
 
             //straight
             if(hasStraight){
-                return {Rating::Straight, {topStraightRank}};
+                return {Rating::Straight, {topStraightRank}, {}};
             }
 
             //three of a kind
-            if(!trips.empty() && hasTrips){
-                vector<int> temp = {trips[0]};
-                temp.insert(temp.end(), singles.begin(), singles.end());
-                return {Rating::FourOfAKind, temp}; //5 cars hand -> return {repeated rank, extra cards}
+            if(!trips.empty() && singles.size() == 2){
+                return {Rating::ThreeOfAKind, {trips[0]}, {singles[0], singles[1]}}; //5 cars hand -> return {repeated rank, extra cards}
             }
 
             //two pair
-            if(pairs.size() >= 1 && hasPair){
-                vector<int> temp;
-                if(pairs.size() >= 2){
-                    return  {Rating::TwoPair, {pairs[0], pairs[1], singles[0]}};
-                }else if(pairs.size() == 1){
-                    temp = {pairs[0]};
-                    temp.insert(temp.end(), singles.begin(), singles.end());
-                    return {Rating::OnePair, {pairs[0]}};
-                }
+            if(pairs.size() >= 2){
+                return {Rating::TwoPair, {pairs[0], pairs[1]}, {singles[0]}};
             }
 
             //one pair
-            if (pairs.size() == 1) {
-                std::vector<int> keys = {pairs[0]};
-                keys.insert(keys.end(), singles.begin(), singles.end());
-                return {Rating::OnePair, keys};
+            if (pairs.size() == 1 && singles.size() == 3) {
+                return {Rating::OnePair, {pairs[0]}, {singles[0], singles[1], singles[2]}};
             }
 
             // High Card
-            return {Rating::HighCard, ranks};
+            return {Rating::HighCard, {ranks[0]}, {ranks[1], ranks[2], ranks[3], ranks[4]}};
 
     }
 
@@ -185,46 +173,38 @@ private:
         return bestHand = better(allHands);
     }
 
+    static bool compareHandValue(HandValue& a, HandValue& b){
+        //return best hand or compare kickers
+        if(a.rating != b.rating){return a.rating > b.rating;}
+        if(a.handCards != b.handCards){return a.handCards > b.handCards;}
+        return compareKickers(a,b);
+    }
+
+    static bool compareKickers(HandValue& a, HandValue& b){
+        if(a.handCards != b.handCards){return (a.handCards > b.handCards ? a : b);}
+        std::cout<<"SAME HAND\n";
+        return false;
+    }
+
     static HandValue better(vector<HandValue>& ah) {
-        //handValue has the rating + kickers
-        //Rating - just the ranking
-        /*
-            TODO: find the best possible hand
-                - find the highest rating
-                - check if any other hands share the highest rating
-                - find the true highest hand by considering kickers
-            Return best Hand
-        */
+        if (ah.empty()) {
+            // Defensive fallback (shouldn't happen if evaluateHand constructed hands)
+            return HandValue{Rating::HighCard, {}, {}};
+        }
 
-        //FIND THE BEST RATING ===================================================
-        Rating bestRating = Rating::Nothing;
-        for(auto &h: ah){
-            if(h.rating > bestRating){bestRating = h.rating;}
+        //normalise
+        for(auto &a : ah){
+            sort(a.handCards.begin(), a.handCards.end(), greater<int>());
+            sort(a.kickers.begin(), a.kickers.end(), greater<int>());
         }
-        //CHECK IF BEST RATING OCCURS > 1 TIME ===================================
-        vector<HandValue> sameRating;
-        for(auto &h: ah){
-            if(h.rating == bestRating){sameRating.push_back(h);}
-        }
-        //IF BEST RATING IS REOCCURING ===========================================
-        if(sameRating.size() > 1){
-            //there are multiple hands with the same rating
-            // compare kickers -> bestHand = highest rating + highest kickers
-            int bestKicker = 0;
-            HandValue bestHand;
-            for(auto& k : sameRating){
-                int currBestKicker = *max(k.kickers.begin(), k.kickers.end());
-                if(currBestKicker > bestKicker){
-                    bestKicker = currBestKicker;
-                    bestHand = k;
-                }
+
+        //sort
+        sort(ah.begin(), ah.end(), 
+            [](const HandValue& a, const HandValue& b){
+                return compareHandValue(a,b);
             }
-            return bestHand;
-        }
-        //IF BEST RATING IS NOT REOCCURING =======================================
-        //there's only one hand with the best rating
-        return sameRating[0];
-
+        );
+        return ah[0];
     }
 
     static bool isDraw(vector<vector<int>>& grid) {
@@ -239,52 +219,18 @@ private:
         return true;
     }
 public:
+
     static vector<Player*> compareHands(vector<Player*>& contenders, std::vector<Cards>& community){
         //IF CONTENDERS IS EMPTY OR THERE IS ONLY 1 CONTENDER =============================
         if(contenders.size() == 0) return {};
         if(contenders.size() == 1) return {contenders[0]};
-        //PUT EVERYONE ON A LEADERBOARD ===================================================
-        vector<pair<Player*, HandValue>> leaderBoard;
-        for(auto& c : contenders){
-            leaderBoard.push_back({c, evaluateHand(c->hand, community)});
+        //sorting
+        vector<pair<Player*, HandValue>> leaderboard;
+        for(auto &p: contenders){
+            
         }
-        //FIND THE HIGHEST RATING =========================================================
-        Rating maxRating = Rating::Nothing;
-        for(auto& p: leaderBoard){
-            if(p.second.rating > maxRating){
-                maxRating = p.second.rating;
-            }
-        }
-        //CHECK IF HIGHEST RATING IS REOCCURING ===========================================
-        vector<pair<Player*, HandValue>> sameHands;
-        for(auto& p : leaderBoard){
-            if(p.second.rating == maxRating){
-                sameHands.push_back(p);
-            }
-        }
-        //CHECK IF BEST RATING OCCURS > 1 TIME ===================================
-        vector<Player*> winners;
-        if(sameHands.size() > 1){
-            //DRAW CONDITION ==============================================================
-            vector<vector<int>>allKickerCards;
-            for(auto &p: sameHands){
-                sort(p.second.kickers.begin(), p.second.kickers.end(), greater<int>());
-                allKickerCards.push_back(vector<int>(p.second.kickers.begin(), p.second.kickers.end()));
-            }
-            if(isDraw(allKickerCards)){
-                for(auto &i : sameHands){
-                    winners.push_back(i.first);
-                }
-                return winners;
-            }
-            //NON DRAW CONDITION ==========================================================
-                //find the highest kicker card and which player it belongs to
-            auto it = max_element(allKickerCards.begin(), allKickerCards.end());
-            int rowIndex = it - allKickerCards.begin();
-            winners.push_back(sameHands[rowIndex].first);
-        }
-        //Return  ===========================================
-        return winners;
+        //leaderboard
+        vector<Player*> winners; //returning this
 
     }
 };

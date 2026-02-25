@@ -16,7 +16,7 @@ private:
     }
     bool test;
 public:
-    Bots(std::string n, int startingBalance, bool test = false): Player(n, startingBalance){}
+    Bots(std::string n, int startingBalance, bool t = false): Player(n, startingBalance), test(t){}
 
     Action decideAction(int toCall, int minRaise = 10) {
         std::uniform_int_distribution<int> dist(1, 4);
@@ -24,11 +24,6 @@ public:
         ActionType desired =cycle[roll-1];
 
         Action act;
-        
-        if(test){
-            act.action = ActionType::Call;
-            return act;
-        }
 
         const int balanceNow = balance;
 
@@ -57,7 +52,11 @@ public:
         else { // desired == Fold
             act.action = ActionType::Fold;
         }
-
+        
+        if(test){
+            act.action = ActionType::Nothing;
+            return act;
+        }
         return act;
     }
 };

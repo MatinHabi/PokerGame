@@ -19,10 +19,10 @@ private:
     friend class HandRank;
     friend class Bots;  
 public:
-    Player(std::string n = "John Doe", int startingBalance = 205);
-
+    Player(std::string n = "John Doe", int startingBalance = 200);
 
     void giveCard(const Cards& c);
+    
     void clearHand();
 
     std::vector<Cards>& getHand();

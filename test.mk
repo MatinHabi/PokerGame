@@ -3,7 +3,7 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Wpedantic -O2
 TARGET   := poker
 
 # automatically grab every .cpp in the current directory
-SRCS := $(filter-out testmain.cpp,$(wildcard *.cpp))
+SRCS := $(wildcard *.cpp)
 OBJS := $(SRCS:.cpp=.o)
 
 .PHONY: all run clean

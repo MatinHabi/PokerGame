@@ -11,7 +11,6 @@ protected:
     friend class PokerTable;
 public:
     Deck(): next(0){reset();}
-
     void reset(){
         deck.clear();
         for(int s = 0 ; s < 4 ; s++){
@@ -38,7 +37,6 @@ public:
         }
         return {0,(Suit)1};
     }
-
     ~Deck(){}
 
 };
