@@ -71,6 +71,13 @@ private:
         vector<int> uniqueRanks;
         int topStraightRank = 0;
 
+        //suit check
+        bool sameSuit = false;
+        for(int &i : suitCount){
+            if(i == 5) sameSuit = true;
+        }
+
+        //rank check
         for(int r = 2 ; r <= 14 ; r++){
             if(rankCount[r] > 0){
                 uniqueRanks.push_back(r);
@@ -82,11 +89,9 @@ private:
             if(uniqueRanks[4] - uniqueRanks[0] == 4){
                 hasStraight = true;
                 topStraightRank = uniqueRanks[4];
-            }
-
-            if (uniqueRanks == std::vector<int>{2,3,4,5,14}) {
+            } else if (uniqueRanks == std::vector<int>{2, 3, 4, 5, 14}) {
                 hasStraight = true;
-                topStraightRank = 5; // Low Straight condition is (A-2-3-4-5)
+                topStraightRank = 5; // Wheel (A-2-3-4-5)
             }
         }
 
@@ -105,9 +110,11 @@ private:
             //royal flush & Straight flush
             if(hasStraight && hasFlush){
                 if(topStraightRank == 14){
-                    return {Rating::RoyalFlush, {14}};
+                    return {Rating::RoyalFlush, {14}, {}};
                 }
-                return {Rating::StraightFlush, {topStraightRank}, {}};
+                if(hasStraightFlush) {
+                    return {Rating::StraightFlush, {topStraightRank}, {}};
+                }
             }
 
             //four of a kind
@@ -173,16 +180,16 @@ private:
         return bestHand = better(allHands);
     }
 
-    static bool compareHandValue(HandValue& a, HandValue& b){
+    static bool compareHandValue(const HandValue& a, const HandValue& b){
         //return best hand or compare kickers
         if(a.rating != b.rating){return a.rating > b.rating;}
         if(a.handCards != b.handCards){return a.handCards > b.handCards;}
         return compareKickers(a,b);
     }
 
-    static bool compareKickers(HandValue& a, HandValue& b){
-        if(a.handCards != b.handCards){return (a.handCards > b.handCards ? a : b);}
-        std::cout<<"SAME HAND\n";
+    static bool compareKickers(const HandValue& a, const HandValue& b){
+        if(a.kickers != b.kickers){return a.kickers > b.kickers;}
+        //std::cout<<"SAME HAND\n";
         return false;
     }
 
@@ -207,17 +214,6 @@ private:
         return ah[0];
     }
 
-    static bool isDraw(vector<vector<int>>& grid) {
-        if (grid.empty()) return true;
-
-        const vector<int>& first = grid[0];
-
-        for (int i = 1; i < grid.size(); i++) {
-            if (grid[i] != first)   // vector comparison is element-wise
-                return false;
-        }
-        return true;
-    }
 public:
 
     static vector<Player*> compareHands(vector<Player*>& contenders, std::vector<Cards>& community){
@@ -227,32 +223,31 @@ public:
         //leaderboard
         vector<pair<Player*, HandValue>> leaderboard;
         for(auto &p: contenders){
-            leaderboard.push_back({p,evaluateHand(p->hand, community)});
+            auto v = evaluateHand(p->hand, community);
+            sort(v.handCards.begin(), v.handCards.end(), greater<int>());
+            sort(v.kickers.begin(), v.kickers.end(), greater<int>());
+            leaderboard.push_back({p,v});
         }
         //sort leaderboard
         sort(leaderboard.begin(), leaderboard.end(), 
             [](const pair<Player*, HandValue> &a, const pair<Player*, HandValue>& b){
-                sort(a.handCards.begin(), a.handCards.end(), greater<int>());
-                sort(a.kickers.begin(), a.kickers.end(), greater<int>());
-                sort(b.handCards.begin(), b.handCards.end(), greater<int>());
-                sort(b.kickers.begin(), b.kickers.end(), greater<int>());
-                return compareHandValue(a,b);
+                return compareHandValue(a.second,b.second);
             }
         );
 
         vector<Player*> winners;
-        Rating bestRating = Rating::Nothing;
+        const HandValue& bestHand = leaderboard[0].second;
 
-        for(auto &c : leaderboard){
-            if(c.second.rating > bestrating){
-                bestRating = c.second.rating;
+        for (size_t i = 0; i < leaderboard.size(); i++) {
+            // Tie detection: If A is not better than B AND B is not better than A
+            if (!compareHandValue(leaderboard[i].second, bestHand) && 
+                !compareHandValue(bestHand, leaderboard[i].second)) {
+                winners.push_back(leaderboard[i].first);
+            } else {
+                break; // List is sorted, so we can stop once someone loses
             }
         }
-        for(int i = 0 ; i < leaderboard.size() ; i++){
-            if(leaderboard[i].second.rating == bestRating && !compareHandValue(c.second,leaderboard[0].second)){
-                winners.push_back(c);
-            }
-        }
+
         return winners;
     }
 };

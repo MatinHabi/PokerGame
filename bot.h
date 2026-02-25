@@ -24,7 +24,10 @@ public:
         ActionType desired =cycle[roll-1];
 
         Action act;
-
+        if(test){
+            act.action = ActionType::Nothing;
+            return act;
+        }
         const int balanceNow = balance;
 
         if (desired == ActionType::Nothing) {
@@ -53,10 +56,6 @@ public:
             act.action = ActionType::Fold;
         }
         
-        if(test){
-            act.action = ActionType::Nothing;
-            return act;
-        }
         return act;
     }
 };

@@ -333,13 +333,12 @@ public:
 
         if(P1->isActive()){
             contenders.push_back(P1);
-        }else{
-            for(auto& b : bots){
-                if(!b->isActive()) continue;
-                contenders.push_back(b);
-            }
         }
-
+        
+        for(auto& b : bots){
+            if(!b->isActive()) continue;
+            contenders.push_back(b);
+        }
         vector <Player*> winners = HandRank::compareHands(contenders, communityCards);
 
         dealPot(winners);
