@@ -123,7 +123,6 @@ public:
         std::cout << "Pot: $" << pot << "\n\n";
     }
 
-
     void startRound() {
         system("clear");
         pot = 0;
@@ -330,20 +329,43 @@ public:
     }
 
     std::string showdown() {
-        Player* winner = nullptr;
+        vector<Player*> contenders;
 
-        // pick first active as baseline
-        if (P1->isActive()) winner = P1;
-        for (auto b : bots) {
-            if (!b->isActive()) continue;
-            if (!winner) winner = b;
-            else winner = HandRank::compareHands(winner, b, communityCards);
+        if(P1->isActive()){
+            contenders.push_back(P1);
+        }else{
+            for(auto& b : bots){
+                if(!b->isActive()) continue;
+                contenders.push_back(b);
+            }
         }
 
-        if (!winner) return "draw!\n";
-        return winner->name + " wins!\n";
-    }
+        vector <Player*> winners = HandRank::compareHands(contenders, communityCards);
 
+        dealPot(winners);
+        if (winners.size() > 1){
+            string temp = "";
+            for(auto &i : winners){
+                temp += i->name + " ";
+            }
+            return "draw between " + temp + "!\n";
+        }
+        else if(winners.size() == 1) {return winners[0]->name + " wins!\n";} 
+        else {cout << "ERROR\n"; return {};}
+    }
+    
+    void dealPot(vector<Player*>& p){
+        if(p.empty()){cout << "ERROR- NO WINNERS\n"; return;}
+        if(p.size() == 1){p[0]->addBalance(pot);}
+        else{
+            int dist = pot/p.size();
+            for(auto &pl : p){
+                pl->addBalance(dist);
+            }   
+        }
+        pot = 0;
+    }
+    
     ~PokerTable() {
         delete deck;
         delete P1;

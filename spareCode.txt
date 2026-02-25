@@ -1,0 +1,28 @@
+    //FIND THE FIRST NON REPEATING KICKER
+                    //COMPARE THEM -> BEST ONE IS WINNER
+                        //IF NO BEST ONE IS FOUND -> DRAW
+            //SIZE OF SPARE CARDS (All cards with the same rating have the same number of spare cards) ====
+            int numOfKickers = sameHands[0].second.kickers.size();
+            int numOfPlayers = sameHands.size();
+            //ORDER ALL HANDS FOR ANALYSIS ========================================
+            vector<vector<int>> allKickerHands;
+            for(auto &i : sameHands){
+                sort(i.second.kickers.begin(), i.second.kickers.end(), greater<int>());
+                allKickerHands.push_back(vector<int>(i.second.kickers.begin(), i.second.kickers.end()));
+            }
+            //FIND THE FIRST NON REPEATING SPARE CARD + RETURN WINNER =================
+            Player* winnerSoFar;
+            int row = numOfPlayers, col = numOfKickers;
+            for(int r = 0 ; r < row ; r++){
+                for(int c = 0 ; c < col ; c++){
+                    int p1 = allKickerHands[r][c];
+                    for(int p2 = r+1 ; p2 < row ; p2++){
+                        if(allKickerHands[p2][c] == p1){
+                            winners.push_back(sameHands[r].first);
+                        }else{
+                            
+                        }
+                    }
+                }
+            }
+            

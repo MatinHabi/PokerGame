@@ -42,7 +42,8 @@ public:
     virtual Action decideAction(int toCall, int minRaise) { 
         return Action{ActionType::Nothing, 0}; 
     }
+    
+    void showPlayerUI();
 
     virtual ~Player() = default;
-    void showPlayerUI();
 };

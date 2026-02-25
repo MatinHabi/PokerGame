@@ -1,7 +1,8 @@
 #pragma once
 #include <vector>
-#include <unordered_set>
+#include <set>
 #include <algorithm>
+#include <functional>
 #include "card.h"
 #include "helper.h"
 #include "player.h"
@@ -23,7 +24,7 @@ enum class Rating{
 
 struct HandValue{
     Rating rating;
-    vector<int> keys; //used for tiebreaker
+    vector<int> kickers; //used for tiebreaker
 };
 
 class HandRank{
@@ -104,8 +105,9 @@ private:
             //strongest first
             //royal flush & Straight flush
             if(hasStraight && hasFlush){
-                if(topStraightRank == 14)
+                if(topStraightRank == 14){
                     return {Rating::RoyalFlush, {14}};
+                }
                 return {Rating::StraightFlush, {topStraightRank}};
             }
 
@@ -139,13 +141,12 @@ private:
             //two pair
             if(pairs.size() >= 1 && hasPair){
                 vector<int> temp;
-                if(pairs.size() == 1){
+                if(pairs.size() >= 2){
+                    return  {Rating::TwoPair, {pairs[0], pairs[1], singles[0]}};
+                }else if(pairs.size() == 1){
                     temp = {pairs[0]};
                     temp.insert(temp.end(), singles.begin(), singles.end());
                     return {Rating::OnePair, {pairs[0]}};
-                }
-                if(pairs.size() >= 2){
-                    return  {Rating::TwoPair, {pairs[0], pairs[1], singles[0]}};
                 }
             }
 
@@ -155,7 +156,7 @@ private:
                 keys.insert(keys.end(), singles.begin(), singles.end());
                 return {Rating::OnePair, keys};
             }
-            
+
             // High Card
             return {Rating::HighCard, ranks};
 
@@ -163,7 +164,8 @@ private:
 
     static HandValue evaluateHand(std::vector<Cards>& hand, std::vector<Cards>& community){
         vector<Cards> combined = hand;
-        HandValue bestHand = {Rating::Nothing, {}};
+        HandValue bestHand;
+        vector<HandValue> allHands;
         combined.insert(combined.end(), community.begin(), community.end());
         bool first = true;
         for(int i = 0 ; i < 7 ; i++){
@@ -172,42 +174,118 @@ private:
                     for(int l = k+1 ; l < 7 ; l++){
                         for(int m = l+1 ; m < 7 ; m++){
                             if(i >= 2 && j >=2 && k>=2 && l>=2 && m>=2){continue;} //must use at least 1 card from hand
-
                             vector<Cards> curr5 = {combined[i], combined[j], combined[k], combined[l], combined[m]};
-
-                            HandValue currHandValue = eval5(curr5);
-
-                            if(first || better(currHandValue, bestHand)){
-                                bestHand = currHandValue;
-                                first = false;
-                            }
+                            allHands.push_back(eval5(curr5));
                             
                         }
                     }
                 }
             }
         }
-        return bestHand;
+        return bestHand = better(allHands);
     }
 
-    static bool better(const HandValue& a, const HandValue& b) {
-        if (a.rating != b.rating)
-            return a.rating > b.rating;
-        return a.keys > b.keys;
+    static HandValue better(vector<HandValue>& ah) {
+        //handValue has the rating + kickers
+        //Rating - just the ranking
+        /*
+            TODO: find the best possible hand
+                - find the highest rating
+                - check if any other hands share the highest rating
+                - find the true highest hand by considering kickers
+            Return best Hand
+        */
+
+        //FIND THE BEST RATING ===================================================
+        Rating bestRating = Rating::Nothing;
+        for(auto &h: ah){
+            if(h.rating > bestRating){bestRating = h.rating;}
+        }
+        //CHECK IF BEST RATING OCCURS > 1 TIME ===================================
+        vector<HandValue> sameRating;
+        for(auto &h: ah){
+            if(h.rating == bestRating){sameRating.push_back(h);}
+        }
+        //IF BEST RATING IS REOCCURING ===========================================
+        if(sameRating.size() > 1){
+            //there are multiple hands with the same rating
+            // compare kickers -> bestHand = highest rating + highest kickers
+            int bestKicker = 0;
+            HandValue bestHand;
+            for(auto& k : sameRating){
+                int currBestKicker = *max(k.kickers.begin(), k.kickers.end());
+                if(currBestKicker > bestKicker){
+                    bestKicker = currBestKicker;
+                    bestHand = k;
+                }
+            }
+            return bestHand;
+        }
+        //IF BEST RATING IS NOT REOCCURING =======================================
+        //there's only one hand with the best rating
+        return sameRating[0];
+
+    }
+
+    static bool isDraw(vector<vector<int>>& grid) {
+        if (grid.empty()) return true;
+
+        const vector<int>& first = grid[0];
+
+        for (int i = 1; i < grid.size(); i++) {
+            if (grid[i] != first)   // vector comparison is element-wise
+                return false;
+        }
+        return true;
     }
 public:
-    static Player* compareHands(Player* p1, Player* p2, std::vector<Cards>& community){
-        HandValue r1 = evaluateHand(p1->getHand(), community);
-        HandValue r2 = evaluateHand(p2->getHand(), community);
+    static vector<Player*> compareHands(vector<Player*>& contenders, std::vector<Cards>& community){
+        //IF CONTENDERS IS EMPTY OR THERE IS ONLY 1 CONTENDER =============================
+        if(contenders.size() == 0) return {};
+        if(contenders.size() == 1) return {contenders[0]};
+        //PUT EVERYONE ON A LEADERBOARD ===================================================
+        vector<pair<Player*, HandValue>> leaderBoard;
+        for(auto& c : contenders){
+            leaderBoard.push_back({c, evaluateHand(c->hand, community)});
+        }
+        //FIND THE HIGHEST RATING =========================================================
+        Rating maxRating = Rating::Nothing;
+        for(auto& p: leaderBoard){
+            if(p.second.rating > maxRating){
+                maxRating = p.second.rating;
+            }
+        }
+        //CHECK IF HIGHEST RATING IS REOCCURING ===========================================
+        vector<pair<Player*, HandValue>> sameHands;
+        for(auto& p : leaderBoard){
+            if(p.second.rating == maxRating){
+                sameHands.push_back(p);
+            }
+        }
+        //CHECK IF BEST RATING OCCURS > 1 TIME ===================================
+        vector<Player*> winners;
+        if(sameHands.size() > 1){
+            //DRAW CONDITION ==============================================================
+            vector<vector<int>>allKickerCards;
+            for(auto &p: sameHands){
+                sort(p.second.kickers.begin(), p.second.kickers.end(), greater<int>());
+                allKickerCards.push_back(vector<int>(p.second.kickers.begin(), p.second.kickers.end()));
+            }
+            if(isDraw(allKickerCards)){
+                for(auto &i : sameHands){
+                    winners.push_back(i.first);
+                }
+                return winners;
+            }
+            //NON DRAW CONDITION ==========================================================
+                //find the highest kicker card and which player it belongs to
+            auto it = max_element(allKickerCards.begin(), allKickerCards.end());
+            int rowIndex = it - allKickerCards.begin();
+            winners.push_back(sameHands[rowIndex].first);
+        }
+        //Return  ===========================================
+        return winners;
 
-        if (r1.rating != r2.rating)
-            return r1.rating > r2.rating ? p1 : p2;
-
-        if (r1.keys != r2.keys)
-            return r1.keys > r2.keys ? p1 : p2;
-
-        return nullptr; // tie
-        
     }
 };
 
