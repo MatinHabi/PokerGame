@@ -168,7 +168,7 @@ private:
                 for(int k = j+1 ; k < 7 ; k++){
                     for(int l = k+1 ; l < 7 ; l++){
                         for(int m = l+1 ; m < 7 ; m++){
-                            if(i >= 2 && j >=2 && k>=2 && l>=2 && m>=2){continue;} //must use at least 1 card from hand
+                            //if(i >= 2 && j >=2 && k>=2 && l>=2 && m>=2){continue;} //must use at least 1 card from hand
                             vector<Cards> curr5 = {combined[i], combined[j], combined[k], combined[l], combined[m]};
                             allHands.push_back(eval5(curr5));
                             
@@ -177,7 +177,7 @@ private:
                 }
             }
         }
-        return bestHand = better(allHands);
+        return bestHand = bestOfAllHands(allHands);
     }
 
     static bool compareHandValue(const HandValue& a, const HandValue& b){
@@ -193,7 +193,7 @@ private:
         return false;
     }
 
-    static HandValue better(vector<HandValue>& ah) {
+    static HandValue bestOfAllHands(vector<HandValue>& ah) {
         if (ah.empty()) {
             // Defensive fallback (shouldn't happen if evaluateHand constructed hands)
             return HandValue{Rating::HighCard, {}, {}};

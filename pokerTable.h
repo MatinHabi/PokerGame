@@ -339,6 +339,7 @@ public:
             if(!b->isActive()) continue;
             contenders.push_back(b);
         }
+
         vector <Player*> winners = HandRank::compareHands(contenders, communityCards);
 
         dealPot(winners);
