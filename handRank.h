@@ -224,14 +224,36 @@ public:
         //IF CONTENDERS IS EMPTY OR THERE IS ONLY 1 CONTENDER =============================
         if(contenders.size() == 0) return {};
         if(contenders.size() == 1) return {contenders[0]};
-        //sorting
+        //leaderboard
         vector<pair<Player*, HandValue>> leaderboard;
         for(auto &p: contenders){
-            
+            leaderboard.push_back({p,evaluateHand(p->hand, community)});
         }
-        //leaderboard
-        vector<Player*> winners; //returning this
+        //sort leaderboard
+        sort(leaderboard.begin(), leaderboard.end(), 
+            [](const pair<Player*, HandValue> &a, const pair<Player*, HandValue>& b){
+                sort(a.handCards.begin(), a.handCards.end(), greater<int>());
+                sort(a.kickers.begin(), a.kickers.end(), greater<int>());
+                sort(b.handCards.begin(), b.handCards.end(), greater<int>());
+                sort(b.kickers.begin(), b.kickers.end(), greater<int>());
+                return compareHandValue(a,b);
+            }
+        );
 
+        vector<Player*> winners;
+        Rating bestRating = Rating::Nothing;
+
+        for(auto &c : leaderboard){
+            if(c.second.rating > bestrating){
+                bestRating = c.second.rating;
+            }
+        }
+        for(int i = 0 ; i < leaderboard.size() ; i++){
+            if(leaderboard[i].second.rating == bestRating && !compareHandValue(c.second,leaderboard[0].second)){
+                winners.push_back(c);
+            }
+        }
+        return winners;
     }
 };
 
